@@ -133,6 +133,7 @@ CREATE TABLE bookings (
     FOREIGN KEY (ticket_type_id) REFERENCES ticket_types(id),
     FOREIGN KEY (seat_id) REFERENCES seats(id)
 );
+
 Payments Table
 
 Apply
@@ -145,6 +146,7 @@ CREATE TABLE payments (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (booking_id) REFERENCES bookings(id)
 );
+
 Notifications Table
 
 Apply
