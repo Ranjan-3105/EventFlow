@@ -38,3 +38,40 @@ Every component is documented to explain:
 The goal is not only to build the application but also to understand the architecture behind it.
 
 See the `docs/` folder for detailed notes.
+
+______________________________________________________________________________________________________________________________________
+## Progress
+
+### Environment
+
+- [x] Spring Boot
+- [x] Docker
+- [x] PostgreSQL
+- [x] Maven
+- [x] Java 21
+
+### Domain Model
+
+- [x] User
+- [x] Role
+- [x] Venue
+- [ ] Screen
+- [ ] Seat
+- [ ] Event
+- [ ] EventSchedule
+- [ ] Booking
+- [ ] Payment
+- [ ] Ticket
+
+### Backend
+
+- [ ] Relationships
+- [ ] Repository Layer
+- [ ] Service Layer
+- [ ] Controllers
+- [ ] Validation
+- [ ] Exception Handling
+- [ ] JWT Authentication
+- [ ] Seat Locking
+- [ ] Redis
+- [ ] Kafka
