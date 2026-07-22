@@ -1,0 +1,342 @@
+🏗️ 1. Architecture Overview
+Microservices Architecture
+User Service: Handles user authentication, roles, and JWT token generation.
+Event Service: Manages event creation, venue management, and scheduling.
+Seat Service: Manages seat locking, availability, and concurrency control.
+Booking Service: Handles booking creation, cancellation, and status transitions.
+Payment Service: Integrates with payment gateways (Razorpay/Stripe) and handles payment verification.
+Notification Service: Sends notifications via email, SMS, or push.
+Analytics Service: Aggregates data for dashboards and reports.
+Search Service: Implements full-text search using Elasticsearch.
+Cache Service: Uses Redis for caching frequently accessed data.
+API Gateway: Acts as a single entry point for all client requests using Spring Cloud Gateway.
+Database: PostgreSQL for relational data storage.
+Redis: For caching and session management.
+Docker: Containerization for deployment and scalability.
+📁 2. Folder Structure (Spring Boot)
+
+Apply
+src/
+├── main/
+│   ├── java/
+│   │   └── com.example.eventflow/
+│   │       ├── config/                // Configuration classes
+│   │       ├── controller/           // REST controllers
+│   │       ├── service/              // Business logic
+│   │       ├── repository/           // Repository interfaces
+│   │       ├── entity/               // Entities
+│   │       ├── dto/                  // Data Transfer Objects
+│   │       ├── security/             // Security configuration
+│   │       ├── cache/                // Redis cache logic
+│   │       ├── kafka/                // Kafka producers/consumers
+│   │       ├── notification/         // Notification logic
+│   │       └── Application.java      // Main application class
+│   └── resources/
+│       ├── application.properties    // Spring Boot config
+│       ├── docker-compose.yml        // Docker configuration
+│       └── schema.sql                // PostgreSQL schema
+🗄️ 3. Database Schema (PostgreSQL)
+Users Table
+
+Apply
+CREATE TABLE users (
+    id UUID PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(2147483647) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'USER',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+Roles Table
+
+Apply
+CREATE TABLE roles (
+    id UUID PRIMARY KEY,
+    name VARCHAR(20) NOT NULL,
+    description TEXT
+);
+Permissions Table
+
+Apply
+CREATE TABLE permissions (
+    id UUID PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    description TEXT
+);
+Events Table
+
+Apply
+CREATE TABLE events (
+    id UUID PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    venue_id UUID NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (venue_id) REFERENCES venues(id)
+);
+Venues Table
+
+Apply
+CREATE TABLE venues (
+    id UUID PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+EventSchedules Table
+
+Apply
+CREATE TABLE event_schedules (
+    id UUID PRIMARY KEY,
+    event_id UUID NOT NULL,
+    date DATE NOT NULL,
+    time TIME NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (event_id) REFERENCES events(id)
+);
+TicketTypes Table
+
+Apply
+CREATE TABLE ticket_types (
+    id UUID PRIMARY KEY,
+    event_schedule_id UUID NOT NULL,
+    name VARCHAR(50) NOT NULL,
+    price NUMERIC(10, 2) NOT NULL,
+    capacity INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (event_schedule_id) REFERENCES event_schedules(id)
+);
+Seats Table
+
+Apply
+CREATE TABLE seats (
+    id UUID PRIMARY KEY,
+    event_schedule_id UUID NOT NULL,
+    seat_number VARCHAR(10) NOT NULL,
+    is_available BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (event_schedule_id) REFERENCES event_schedules(id)
+);
+Bookings Table
+
+Apply
+CREATE TABLE bookings (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    event_schedule_id UUID NOT NULL,
+    ticket_type_id UUID NOT NULL,
+    seat_id UUID NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (event_schedule_id) REFERENCES event_schedules(id),
+    FOREIGN KEY (ticket_type_id) REFERENCES ticket_types(id),
+    FOREIGN KEY (seat_id) REFERENCES seats(id)
+);
+Payments Table
+
+Apply
+CREATE TABLE payments (
+    id UUID PRIMARY KEY,
+    booking_id UUID NOT NULL,
+    amount NUMERIC(10, 2) NOT NULL,
+    payment_method VARCHAR(50) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (booking_id) REFERENCES bookings(id)
+);
+Notifications Table
+
+Apply
+CREATE TABLE notifications (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+🔗 4. APIs (REST Endpoints)
+Endpoint	Method	Description
+/api/auth/register	POST	Register a new user
+/api/auth/login	POST	Login and issue JWT token
+/api/auth/refresh	POST	Refresh JWT token using refresh token
+/api/events	GET	Fetch events
+/api/events	POST	Create event
+/api/events/{id}	DELETE	Delete event
+/api/venues	GET	Fetch venues
+/api/venues	POST	Create venue
+/api/venues/{id}	DELETE	Delete venue
+/api/event-schedules	GET	Fetch event schedules
+/api/event-schedules	POST	Create event schedule
+/api/event-schedules/{id}	DELETE	Delete event schedule
+/api/ticket-types	GET	Fetch ticket types
+/api/ticket-types	POST	Create ticket type
+/api/ticket-types/{id}	DELETE	Delete ticket type
+/api/seats	GET	Fetch seats
+/api/seats	POST	Create seat
+/api/seats/{id}	DELETE	Delete seat
+/api/bookings	GET	Fetch bookings
+/api/bookings	POST	Create booking
+/api/bookings/{id}	DELETE	Delete booking
+/api/bookings/{id}	PUT	Update booking
+/api/payments	POST	Create payment
+/api/payments/{id}	GET	Get payment details
+/api/notifications	GET	Get notifications
+/api/notifications/{id}	DELETE	Delete notification
+🧱 5. Entities
+User Entity
+
+Apply
+@Entity
+public class User {
+    @Id
+    private UUID id;
+    private String username;
+    private String password;
+    private String email;
+    private String role;
+    private LocalDateTime createdAt;
+}
+Role Entity
+
+Apply
+@Entity
+public class Role {
+    @Id
+    private UUID id;
+    private String name;
+    private String description;
+}
+Permission Entity
+
+Apply
+@Entity
+public class Permission {
+    @Id
+    private UUID id;
+    private String name;
+    private String description;
+}
+Event Entity
+
+Apply
+@Entity
+public class Event {
+    @Id
+    private UUID id;
+    private String title;
+    private String description;
+    private UUID venueId;
+    private LocalDateTime createdAt;
+}
+Venue Entity
+
+Apply
+@Entity
+public class Venue {
+    @Id
+    private UUID id;
+    private String name;
+    private String city;
+    private LocalDateTime createdAt;
+}
+EventSchedule Entity
+
+Apply
+@Entity
+public class EventSchedule {
+    @Id
+    private UUID id;
+    private UUID eventId;
+    private LocalDate date;
+    private LocalTime time;
+    private LocalDateTime createdAt;
+}
+TicketType Entity
+
+Apply
+@Entity
+public class TicketType {
+    @Id
+    private UUID id;
+    private UUID eventScheduleId;
+    private String name;
+    private BigDecimal price;
+    private Integer capacity;
+    private LocalDateTime createdAt;
+}
+Seat Entity
+
+Apply
+@Entity
+public class Seat {
+    @Id
+    private UUID id;
+    private UUID eventScheduleId;
+    private String seatNumber;
+    private Boolean isAvailable;
+    private LocalDateTime createdAt;
+}
+Booking Entity
+
+Apply
+@Entity
+public class Booking {
+    @Id
+    private UUID id;
+    private UUID userId;
+    private UUID eventScheduleId;
+    private UUID ticketTypeId;
+    private UUID seatId;
+    private String status;
+    private LocalDateTime createdAt;
+}
+Payment Entity
+
+Apply
+@Entity
+public class Payment {
+    @Id
+    private UUID id;
+    private UUID bookingId;
+    private BigDecimal amount;
+    private String paymentMethod;
+    private String status;
+    private LocalDateTime createdAt;
+}
+Notification Entity
+
+Apply
+@Entity
+public class Notification {
+    @Id
+    private UUID id;
+    private UUID userId;
+    private String message;
+    private LocalDateTime createdAt;
+}
+📈 6. Sequence Diagrams
+User Authentication Flow
+User sends a POST request to /api/auth/login with username and password.
+Server validates credentials and issues a JWT token.
+User receives the JWT token and stores it for future requests.
+User sends a POST request to /api/auth/refresh with the refresh token.
+Server validates the refresh token and issues a new JWT token.
+User receives the new JWT token and stores it.
+Booking Flow
+User sends a GET request to /api/events to fetch event details.
+User selects an event and sends a POST request to /api/event-schedules to fetch available seats.
+User selects a seat and sends a POST request to /api/bookings to lock the seat.
+Server validates the seat availability and issues a lock.
+User sends a POST request to /api/bookings to create a booking.
+Server validates the booking and confirms it.
+User receives a confirmation and the booking is added to the system.
+🧠 7. Design Patterns Applied
+Pattern	Where it's used
+Repository Pattern	All Spring Data JPA data access
+Service Layer	Every service module
+Strategy Pattern	Payment provider abstraction
+Factory Pattern	Notification channel creation
+Builder Pattern	Complex object construction
+Observer Pattern	Kafka consumers reacting to booking/payment events
+Dependency Injection	Throughout, via Spring
+CQRS (optional)	Consider only for Analytics Service if read/write load diverges significantly
