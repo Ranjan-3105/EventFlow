@@ -22,26 +22,45 @@ public class UserService {
     /**
      * Creates a new user and returns a safe response DTO.
      */
-    public UserResponse createUser(CreateUserRequest request){
+    public UserResponse createUser(CreateUserRequest request) {
 
-        User data = new User();
+        // Business Validation
+        // no same Ph number
+        if (userRepository.findByPhoneNumber(request.phoneNumber()).isPresent()) {
+            throw new RuntimeException("Phone number already exists.");
+        }
+        // no same email
+        if (userRepository.findByEmail(request.email()).isPresent()) {
+            throw new RuntimeException(
+                    "User with email " + request.email() + " already exists."
+            );
+        }
 
-        data.setId(UUID.randomUUID());
-        data.setFirstName(request.firstName());
-        data.setLastName(request.lastName());
-        data.setEmail(request.email());
+        // DTO -> Entity Mapping
+        User user = new User();
 
-        // ADD Encryption here using Bcrypt
-        data.setPassword(request.password());
-        data.setPhoneNumber(request.phoneNumber());
-        data.setDateOfBirth(request.dateOfBirth());
-        data.setEnabled(true);
-        data.setCreatedAt(Instant.now());
-        data.setUpdatedAt(Instant.now());
-        data.setRole(Role.USER);
+        user.setId(UUID.randomUUID());
+        user.setFirstName(request.firstName());
+        user.setLastName(request.lastName());
+        user.setEmail(request.email());
 
-        User savedUser = userRepository.save(data);
+        // TODO: Encrypt password using BCrypt
+        user.setPassword(request.password());
 
+        user.setPhoneNumber(request.phoneNumber());
+        user.setDateOfBirth(request.dateOfBirth());
+
+        user.setEnabled(true);
+        user.setRole(Role.USER);
+
+        // TODO: Move timestamps to JPA lifecycle callbacks (@PrePersist)
+        user.setCreatedAt(Instant.now());
+        user.setUpdatedAt(Instant.now());
+
+        // Persist Entity
+        User savedUser = userRepository.save(user);
+
+        // Entity -> Response DTO Mapping
         return new UserResponse(
                 savedUser.getId(),
                 savedUser.getFirstName(),
@@ -51,7 +70,4 @@ public class UserService {
                 savedUser.getRole()
         );
     }
-
-
-
 }

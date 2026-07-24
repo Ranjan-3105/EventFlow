@@ -1,23 +1,72 @@
 # 07. User Module
 
-## Goal
+## Overview
 
-Implement user registration following a production-style layered architecture.
+The User Module is responsible for registering new users into the EventFlow system.
+
+The implementation follows a layered architecture:
+
+```
+Client
+   │
+   ▼
+Controller
+   │
+   ▼
+Service
+   │
+   ▼
+Repository
+   │
+   ▼
+PostgreSQL
+```
+
+Each layer has a single responsibility, making the application easier to maintain, test, and extend.
 
 ---
 
-## Layers
+# Project Structure
 
-### Request DTO
+```
+user
+├── controller
+│   └── UserController
+│
+├── service
+│   └── UserService
+│
+├── repository
+│   └── UserRepository
+│
+├── dto
+│   ├── request
+│   │   └── CreateUserRequest
+│   │
+│   └── response
+│       └── UserResponse
+│
+└── entity
+    └── User
+```
 
-CreateUserRequest
+---
 
-Purpose:
+# Components
+
+## 1. Request DTO
+
+### CreateUserRequest
+
+Represents the data sent by the client during registration.
+
+### Purpose
 
 - Accept client input
-- Perform request validation
+- Validate incoming data
+- Prevent invalid requests from reaching the service layer
 
-Contains:
+### Fields
 
 - firstName
 - lastName
@@ -26,33 +75,50 @@ Contains:
 - phoneNumber
 - dateOfBirth
 
+### Validation
+
+- `@NotBlank`
+- `@Email`
+- `@Size`
+- `@Pattern`
+- `@NotNull`
+
 ---
 
-### Entity
+## 2. Entity
 
-User
+### User
 
-Represents the database model.
+Represents the `users` table in PostgreSQL.
 
-Contains internal fields:
+### Client Controlled Fields
+
+- firstName
+- lastName
+- email
+- password
+- phoneNumber
+- dateOfBirth
+
+### System Controlled Fields
 
 - id
-- enabled
 - role
+- enabled
 - createdAt
 - updatedAt
 
-These fields are never supplied by the client.
+These values are managed by the backend and are never accepted from the client.
 
 ---
 
-### Response DTO
+## 3. Response DTO
 
-UserResponse
+### UserResponse
 
-Returns only information the client needs.
+Represents the data returned after successful registration.
 
-Contains:
+### Fields
 
 - id
 - firstName
@@ -61,66 +127,202 @@ Contains:
 - phoneNumber
 - role
 
-Password is intentionally excluded.
+### Why not return the password?
+
+Passwords are confidential and should never leave the backend after being stored.
 
 ---
 
-### Repository
+## 4. Repository
 
-UserRepository
+### UserRepository
 
-Extends JpaRepository<User, UUID>.
+```java
+public interface UserRepository
+        extends JpaRepository<User, UUID> {
+}
+```
 
-Provides CRUD operations without writing SQL.
+### Responsibilities
+
+- Save users
+- Fetch users
+- Delete users
+- Update users
+
+Spring Data JPA automatically generates CRUD operations.
+
+### Custom Queries
+
+```java
+findByEmail(String email)
+```
+
+Spring derives the SQL automatically from the method name.
 
 ---
 
-### Service
+## 5. Service
 
-UserService
+### UserService
 
-Responsibilities:
+Contains the application's business logic.
 
-- Receive CreateUserRequest
-- Map Request → Entity
+### Responsibilities
+
+- Validate business rules
+- Check if email already exists
+- Convert DTO → Entity
 - Populate internal fields
-- Persist User
-- Map Entity → UserResponse
+- Save entity
+- Convert Entity → DTO
+
+Business logic should never reside inside the Controller.
 
 ---
 
-## Request Flow
+## 6. Controller
 
-POST /api/users
+### UserController
 
-↓
+Responsible for handling HTTP requests.
+
+### Endpoint
+
+```
+POST /api/users/register
+```
+
+### Responsibilities
+
+- Accept HTTP request
+- Validate request body
+- Delegate processing to UserService
+- Return HTTP response
+
+The Controller should remain thin and contain no business logic.
+
+---
+
+# Request Flow
+
+```
+Client
+
+    │
+
+POST /api/users/register
+
+    │
+
+    ▼
+
+UserController
+
+    │
+
+    ▼
 
 CreateUserRequest
 
-↓
+    │
+
+    ▼
 
 UserService
 
-↓
+    │
+
+Check Email
+
+    │
+
+Map DTO → Entity
+
+    │
+
+Populate Internal Fields
+
+    │
+
+    ▼
 
 UserRepository
 
-↓
+    │
 
-Database
+    ▼
 
-↓
+PostgreSQL
+
+    │
+
+    ▼
+
+Saved User
+
+    │
+
+Map Entity → DTO
+
+    │
+
+    ▼
 
 UserResponse
+```
 
 ---
 
-## Design Decisions
+# Security
 
-- UUID used as primary key.
-- Request and Response DTOs separate API contract from database model.
-- Password never returned.
-- Role assigned internally as USER.
-- Enabled defaults to true.
-- Repository contains persistence logic only.
-- Business logic resides inside UserService.
+Registration is intentionally exposed as a public endpoint.
+
+```
+POST /api/users/register
+```
+
+is accessible without authentication.
+
+All other endpoints currently require authentication through Spring Security.
+
+---
+
+# Current Validation
+
+Implemented:
+
+- Email uniqueness (service layer)
+
+Database Constraints:
+
+- Unique email
+- Unique phone number
+
+> **Note:** Phone number uniqueness is currently enforced by the database. A service-layer validation will be added later for better error messages.
+
+---
+
+# Design Decisions
+
+- UUID used as the primary key.
+- DTOs isolate the API contract from the database model.
+- Password is never returned in API responses.
+- Role is assigned internally (`USER`).
+- `enabled` defaults to `true`.
+- Repository handles persistence only.
+- Service contains business logic.
+- Controller handles HTTP communication only.
+
+---
+
+# Future Improvements
+
+- BCrypt password hashing
+- Global exception handling (`@ControllerAdvice`)
+- Custom exceptions
+- JWT authentication
+- Login endpoint
+- Email verification
+- Refresh tokens
+- Role-based authorization
