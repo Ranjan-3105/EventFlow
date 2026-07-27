@@ -4,7 +4,9 @@ import com.eventflow.eventflow.dto.request.CreateUserRequest;
 import com.eventflow.eventflow.dto.response.UserResponse;
 import com.eventflow.eventflow.entity.Role;
 import com.eventflow.eventflow.entity.User;
+import com.eventflow.eventflow.exception.UserAlreadyExistsException;
 import com.eventflow.eventflow.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -14,9 +16,11 @@ import java.util.UUID;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /**
@@ -27,12 +31,14 @@ public class UserService {
         // Business Validation
         // no same Ph number
         if (userRepository.findByPhoneNumber(request.phoneNumber()).isPresent()) {
-            throw new RuntimeException("Phone number already exists.");
+            throw new UserAlreadyExistsException(
+                    "A user with this Phone Number already exists."
+            );
         }
         // no same email
         if (userRepository.findByEmail(request.email()).isPresent()) {
-            throw new RuntimeException(
-                    "User with email " + request.email() + " already exists."
+            throw new UserAlreadyExistsException(
+                    "A user with this email already exists."
             );
         }
 
@@ -45,7 +51,7 @@ public class UserService {
         user.setEmail(request.email());
 
         // TODO: Encrypt password using BCrypt
-        user.setPassword(request.password());
+        user.setPassword(passwordEncoder.encode(request.password()));
 
         user.setPhoneNumber(request.phoneNumber());
         user.setDateOfBirth(request.dateOfBirth());
