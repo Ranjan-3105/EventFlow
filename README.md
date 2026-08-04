@@ -1,77 +1,220 @@
-# EventFlow
+# 🎟️ EventFlow
 
-A production-grade Event Ticket Booking System built while learning Spring Boot through implementation.
+> A production-inspired Event Ticket Booking System built with **Spring Boot**, focusing on learning backend engineering through real-world implementation.
 
----
-
-## Tech Stack
-
-- Spring Boot
-- PostgreSQL
-- Docker
-- Spring Security
-- JWT
-- JPA / Hibernate
-
-Future:
-
-- Redis
-- Kafka
-- Microservices
-- API Gateway
-- Elasticsearch
-- Docker Compose
-- AWS
+EventFlow is more than a CRUD application. The project is designed to simulate the architecture of large-scale event booking platforms while documenting every major concept learned along the way.
 
 ---
 
-## Learning Philosophy
+# ✨ Features Implemented
 
-This project is intentionally built feature by feature.
+## 🔐 Authentication & Authorization
 
-Every component is documented to explain:
+- JWT Authentication
+- Stateless Security
+- Spring Security Integration
+- Role-Based Authorization
+- BCrypt Password Encryption
 
-- Why it exists
-- How it works internally
-- How it is used in production
+## 👤 User Management
 
-The goal is not only to build the application but also to understand the architecture behind it.
+- User Registration
+- User Login
+- Custom UserDetailsService
 
-See the `docs/` folder for detailed notes.
+## 🎭 Event Management
 
-______________________________________________________________________________________________________________________________________
-## Progress
+- Event Creation
+- Hall Availability Validation
+- Scheduling Conflict Detection
+- Organizer Authentication
 
-### Environment
+## 🏢 Venue Management
 
-- [x] Spring Boot
-- [x] Docker
-- [x] PostgreSQL
-- [x] Maven
-- [x] Java 21
+- Admin-Only Venue Creation
+- Geographic Coordinates Support
+- Validation & Exception Handling
 
-### Domain Model
+## ⚙️ Backend Infrastructure
 
-- [x] User
-- [x] Role
-- [x] Venue
-- [ ] Screen
-- [ ] Seat
-- [ ] Event
-- [ ] EventSchedule
-- [ ] Booking
-- [ ] Payment
-- [ ] Ticket
+- Layered Architecture
+- DTO Pattern
+- Global Exception Handling
+- Request Validation
+- Transaction Management
+- Spring Data JPA
+- PostgreSQL Integration
+
+---
+
+# 🛠️ Tech Stack
 
 ### Backend
 
-- [ ] Relationships
-- [ ] Repository Layer
-- [ ] Service Layer
-- [ ] Controllers
-- [ ] Validation
-- [ ] Exception Handling
-- [ ] JWT Authentication
-- [ ] Seat Locking
-- [ ] Redis
-- [ ] Kafka
+- Java 21
+- Spring Boot
+- Spring Security
+- Spring Data JPA (Hibernate)
+- JWT
+
+### Database
+
+- PostgreSQL
+
+### DevOps
+
+- Docker
+- Maven
+
+### Planned
+
+- Redis
+- Apache Kafka
+- Elasticsearch
+- Docker Compose
+- AWS
+- API Gateway
+- Microservices
+
+---
+
+# 📂 Project Structure
+
+```
+src/main/java
+│
+├── config/
+├── controller/
+├── dto/
+│   ├── request/
+│   └── response/
+├── entity/
+├── exception/
+├── repository/
+├── security/
+├── service/
+└── EventflowApplication.java
+```
+
+The project follows a layered architecture:
+
+```
+Client
+
+↓
+
+Controller
+
+↓
+
+Service
+
+↓
+
+Repository
+
+↓
+
+PostgreSQL
+```
+
+---
+
+# 📚 Documentation
+
+Every major concept is documented inside the **docs/** directory.
+
+Current documentation includes:
+
+- Project Setup
+- Docker Setup
+- Security Architecture
+- Project Architecture
+- Exception Handling
+- Spring Boot Core Concepts
+
+More documentation is added alongside every completed module.
+
+---
+
+# 🚧 Current Progress
+
+## Environment
+
+- [x] Spring Boot
+- [x] Java 21
+- [x] Maven
+- [x] Docker
+- [x] PostgreSQL
+
+---
+
+## Security
+
+- [x] User Registration
+- [x] Login
+- [x] JWT Authentication
+- [x] Role-Based Authorization
+- [x] Stateless Sessions
+- [x] Authentication Entry Point
+- [x] Access Denied Handler
+
+---
+
+## Backend
+
+- [x] DTO Layer
+- [x] Repository Layer
+- [x] Service Layer
+- [x] Controller Layer
+- [x] Validation
+- [x] Global Exception Handling
+- [x] Transaction Management
+
+---
+
+## Modules
+
+- [x] User
+- [x] Event
+- [x] Venue
+- [ ] Hall
+- [ ] Seat
+- [ ] Booking
+- [ ] Payment
+- [ ] Ticket
+- [ ] Notification
+
+---
+
+## Upcoming Features
+
+- Seat Locking
+- Redis Integration
+- Kafka Integration
+- Payment Gateway
+- Booking Engine
+- Event Search
+- Email Notifications
+- Microservices Migration
+
+---
+
+# 🎯 Learning Goal
+
+The purpose of this project is not only to build an event booking system but also to understand how enterprise backend applications are designed.
+
+Every feature is implemented from scratch while documenting:
+
+- Why it exists
+- How it works internally
+- Where it fits in a production system
+- Best practices followed during implementation
+
+The repository serves as both a project and a personal backend engineering handbook.
+
+---
+
+## ⭐ Project Status
+
+**Actively under development.** New modules and documentation are added incrementally as the project evolves.

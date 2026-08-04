@@ -6,6 +6,10 @@ import com.eventflow.eventflow.entity.Event;
 import com.eventflow.eventflow.entity.EventStatus;
 import com.eventflow.eventflow.entity.Hall;
 import com.eventflow.eventflow.entity.User;
+import com.eventflow.eventflow.exception.HallAlreadyBookedException;
+import com.eventflow.eventflow.exception.HallNotFoundException;
+import com.eventflow.eventflow.exception.InvalidEventTimeException;
+import com.eventflow.eventflow.exception.UserNotFoundException;
 import com.eventflow.eventflow.repository.EventRepository;
 import com.eventflow.eventflow.repository.HallRepository;
 import com.eventflow.eventflow.repository.UserRepository;
@@ -82,10 +86,12 @@ public class EventService {
         event.setStartTime(request.startTime());
         event.setHall(hall);
         event.setOrganizer(organizer);
-        event.setUpdatedAt(Instant.now());
-        event.setCreatedAt(Instant.now());
         event.setStatus(EventStatus.DRAFT);
         event.setBannerUrl(request.bannerUrl());
+        Instant now = Instant.now();
+
+        event.setUpdatedAt(now);
+        event.setCreatedAt(now);
 
         Event savedEvent = eventRepository.save(event);
 
