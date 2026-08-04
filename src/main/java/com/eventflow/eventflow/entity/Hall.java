@@ -1,6 +1,8 @@
 package com.eventflow.eventflow.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,34 +16,26 @@ import java.util.UUID;
 @Getter
 @Setter
 @Entity
-@Table(name = "venues")
-public class Venue {
+@Table(name = "halls")
+public class Hall {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private UUID id;
 
     @Column(nullable = false)
-    private String name;
+    private int hallNumber;
 
-    @Column(nullable = false)
-    private String address;
+    @Positive
+    private int capacity;
 
-    @Column(nullable = false)
-    private String city;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "venueID")
+    private Venue venue;
 
-    @Column(nullable = false)
-    private String state;
-
-    @Column(nullable = false)
-    private String country;
-
-    @Column(nullable = false)
-    private Double latitude;
-
-    @Column(nullable = false)
-    private Double longitude;
-
+    @NotNull
     private Instant createdAt;
 
+    @NotNull
     private Instant updatedAt;
 }
