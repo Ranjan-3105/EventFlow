@@ -4,14 +4,13 @@ import com.eventflow.eventflow.dto.response.ErrorResponse;
 import com.eventflow.eventflow.dto.response.ValidationErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-
-import java.util.HashMap;
-import java.util.Map;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -73,6 +72,26 @@ public class GlobalExceptionHandler {
     }
 
     // =====================================================
+    // Venue Exceptions
+    // =====================================================
+
+    @ExceptionHandler(VenueNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleVenueNotFound(
+            VenueNotFoundException ex) {
+
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND.value(),
+                HttpStatus.NOT_FOUND.getReasonPhrase(),
+                ex.getMessage()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(error);
+    }
+
+    // =====================================================
     // Hall Exceptions
     // =====================================================
 
@@ -89,6 +108,22 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
+                .body(error);
+    }
+
+    @ExceptionHandler(DuplicateHallException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateHall(
+            DuplicateHallException ex) {
+
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                HttpStatus.CONFLICT.getReasonPhrase(),
+                ex.getMessage()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
                 .body(error);
     }
 
@@ -161,7 +196,7 @@ public class GlobalExceptionHandler {
     }
 
     // =====================================================
-    // Generic Exceptions (Optional - Add Later)
+    // Generic Exceptions (Optional - Future)
     // =====================================================
 
     /*
