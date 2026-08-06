@@ -23,8 +23,6 @@ public class HallController {
             @Valid @RequestBody CreateHallRequest request
     ) {
 
-        System.out.println(">>> HallController reached");
-
         HallResponse response =
                 hallService.createHall(request);
 

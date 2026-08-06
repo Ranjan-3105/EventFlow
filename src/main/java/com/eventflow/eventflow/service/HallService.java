@@ -31,14 +31,10 @@ public class HallService {
 
     public HallResponse createHall(CreateHallRequest request) {
 
-        System.out.println(">>> HallService reached");
-
         Venue venue = venueRepository
                 .findById(request.venueId())
                 .orElseThrow(() ->
                         new VenueNotFoundException("Venue not found"));
-
-        System.out.println("Venue = " + venue.getId());
 
         boolean exists = hallRepository.existsByVenueIdAndHallNumber(
                 request.venueId(),
@@ -55,7 +51,7 @@ public class HallService {
 
         hall.setHallNumber(request.hallNumber());
         hall.setId(UUID.randomUUID());
-        hall.setCapacity(request.capacity());
+        hall.setCapacity(0);
         hall.setVenue(venue);
 
         Instant now = Instant.now();

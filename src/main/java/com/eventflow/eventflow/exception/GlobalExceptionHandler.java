@@ -195,6 +195,38 @@ public class GlobalExceptionHandler {
                 .body(error);
     }
 
+    @ExceptionHandler(SeatLayoutAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleSeatLayoutAlreadyExists(
+            SeatLayoutAlreadyExistsException ex) {
+
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                HttpStatus.CONFLICT.getReasonPhrase(),
+                ex.getMessage()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(error);
+    }
+
+    @ExceptionHandler(InvalidSeatLayoutException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidSeatLayout(
+            InvalidSeatLayoutException ex) {
+
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                ex.getMessage()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(error);
+    }
+
     // =====================================================
     // Generic Exceptions (Optional - Future)
     // =====================================================

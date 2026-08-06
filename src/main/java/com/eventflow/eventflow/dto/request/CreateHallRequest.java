@@ -11,9 +11,5 @@ public record CreateHallRequest(
         UUID venueId,
 
         @Positive
-        int hallNumber,
-
-        @Positive
-        int capacity
-
+        int hallNumber
 ) {}

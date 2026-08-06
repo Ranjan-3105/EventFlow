@@ -2,7 +2,7 @@
 
 > A production-inspired Event Ticket Booking System built with **Spring Boot**, documenting the journey from a monolithic backend to a scalable distributed system.
 
-EventFlow is a hands-on learning project focused on backend engineering. Instead of building isolated CRUD APIs, the project models real-world event management workflows while documenting every architectural decision, concept, and implementation.
+EventFlow is a hands-on backend engineering project focused on understanding how real-world event booking platforms are designed. Rather than building isolated CRUD APIs, the project models production workflows while documenting every major architectural decision, business rule, and Spring Boot concept along the way.
 
 ---
 
@@ -27,12 +27,24 @@ EventFlow is a hands-on learning project focused on backend engineering. Instead
 
 ---
 
-## 🏢 Venue Management
+## 🏢 Venue & Hall Management
 
 - Admin-only Venue Creation
-- Hall Management
+- Hall Creation
+- Automatic Hall Capacity Calculation
 - Venue Validation
 - Duplicate Hall Detection
+
+---
+
+## 💺 Seat Management
+
+- Automatic Seat Layout Generation
+- Batch Seat Creation
+- Configurable Rows & Seats per Row
+- Automatic Hall Capacity Calculation
+- Duplicate Layout Prevention
+- Seat Layout Validation
 
 ---
 
@@ -41,7 +53,7 @@ EventFlow is a hands-on learning project focused on backend engineering. Instead
 - Organizer-only Event Creation
 - Hall Availability Validation
 - Event Scheduling Conflict Detection
-- Event Status Management (Draft)
+- Draft Event Support
 
 ---
 
@@ -83,7 +95,7 @@ EventFlow is a hands-on learning project focused on backend engineering. Instead
 
 # 📂 Project Structure
 
-```
+```text
 src/main/java
 │
 ├── config/
@@ -99,26 +111,30 @@ src/main/java
 └── EventflowApplication.java
 ```
 
-Project Architecture
+---
 
-```
-Client
+# 🏗️ Project Architecture
 
-↓
-
-Controller
-
-↓
-
-Service
-
-↓
-
-Repository
-
-↓
-
-PostgreSQL
+```text
+                Client
+                   │
+                   ▼
+            Spring Security
+                   │
+                   ▼
+             JWT Filter Chain
+                   │
+                   ▼
+              Controller
+                   │
+                   ▼
+               Service
+                   │
+                   ▼
+             Repository
+                   │
+                   ▼
+             PostgreSQL
 ```
 
 ---
@@ -140,9 +156,10 @@ Current documentation includes:
 - JPA Relationships
 - Query Derivation vs JPQL
 - Validation vs Business Rules
-- Event Module Deep Dive
+- Event Module
+- Seat Module
 
-Documentation is expanded alongside every completed module.
+Documentation grows alongside every completed module.
 
 ---
 
@@ -177,7 +194,7 @@ Documentation is expanded alongside every completed module.
 - [x] Repository Layer
 - [x] Service Layer
 - [x] Controller Layer
-- [x] Validation
+- [x] Bean Validation
 - [x] Global Exception Handling
 - [x] Transaction Management
 
@@ -188,8 +205,8 @@ Documentation is expanded alongside every completed module.
 - [x] User
 - [x] Venue
 - [x] Hall
+- [x] Seat
 - [x] Event
-- [ ] Seat
 - [ ] Booking
 - [ ] Payment
 - [ ] Ticket
@@ -201,11 +218,11 @@ Documentation is expanded alongside every completed module.
 
 ## Booking System
 
-- Seat Management
-- Seat Locking
 - Booking Engine
+- Redis Seat Locking
 - Payment Integration
 - Ticket Generation
+- Booking History
 
 ## Scalability
 
@@ -213,6 +230,7 @@ Documentation is expanded alongside every completed module.
 - Kafka Event Streaming
 - Elasticsearch
 - API Gateway
+- Docker Compose
 - Microservices
 - AWS Deployment
 
@@ -220,39 +238,45 @@ Documentation is expanded alongside every completed module.
 
 # 🎯 Learning Objectives
 
-This project is built to understand how production backend systems are designed rather than simply creating CRUD APIs.
+The purpose of EventFlow is not only to build an event booking system but also to understand how enterprise backend systems are designed.
 
-Every module focuses on:
+Each module focuses on:
 
-- Understanding the problem
+- Understanding the business problem
 - Designing the domain model
 - Implementing business rules
 - Applying Spring Boot best practices
-- Documenting architectural decisions
+- Writing production-style documentation
+- Thinking about scalability from the beginning
 
 The repository serves as both a production-inspired backend project and a personal backend engineering handbook.
 
 ---
 
-# 📈 Current Architecture
+# 📈 Domain Model
 
-```
-                User
-                  │
-        ┌─────────┴─────────┐
-        │                   │
-     ADMIN             ORGANIZER
-        │                   │
-        ▼                   ▼
-      Venue ───────────► Event
-        │                  ▲
-        ▼                  │
-       Hall ───────────────┘
+```text
+                   User
+                     │
+          ┌──────────┴──────────┐
+          │                     │
+       ADMIN               ORGANIZER
+          │                     │
+          ▼                     ▼
+       Venue ───────────────► Event
+          │                     ▲
+          ▼                     │
+        Hall ───────────────────┘
+          │
+          ▼
+        Seats
 ```
 
-Upcoming
+---
 
-```
+# 🚀 Upcoming Architecture
+
+```text
 Venue
   │
   ▼
@@ -271,10 +295,29 @@ Payment
 Ticket
 ```
 
+Eventually:
+
+```text
+Client
+   │
+API Gateway
+   │
+┌──────┬────────┬────────┬────────┐
+│      │        │        │
+User  Event  Booking  Payment
+Service Service Service Service
+               │
+            Redis
+               │
+            Kafka
+```
+
 ---
 
 # ⭐ Project Status
 
 🚧 **Actively under development**
 
-The project is being developed module by module while documenting each implementation. Future milestones include the booking engine, Redis-based seat locking, Kafka-driven event processing, and a transition towards a microservices architecture.
+Completed modules are fully tested with validation, exception handling, and business rules before moving to the next feature.
+
+The next major milestone is building the **Booking Engine**, followed by **Redis-based seat locking**, **Payment Integration**, and **Kafka-driven asynchronous workflows**.
