@@ -48,4 +48,8 @@ public class BookingSeat {
     @NotNull
     @Column(nullable = false)
     private Instant createdAt;
+
+    @NotNull
+    @Column(nullable = false)
+    private Instant updatedAt;
 }

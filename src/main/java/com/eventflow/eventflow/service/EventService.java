@@ -84,6 +84,7 @@ public class EventService {
         event.setDescription(request.description());
         event.setEndTime(request.endTime());
         event.setStartTime(request.startTime());
+        event.setBasePrice(request.basePrice());
         event.setHall(hall);
         event.setOrganizer(organizer);
         event.setStatus(EventStatus.DRAFT);
@@ -100,7 +101,8 @@ public class EventService {
                 savedEvent.getTitle(),
                 savedEvent.getStartTime(),
                 savedEvent.getEndTime(),
-                savedEvent.getStatus()
+                savedEvent.getStatus(),
+                savedEvent.getBasePrice()
         );
 
     }
