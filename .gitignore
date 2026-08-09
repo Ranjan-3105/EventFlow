@@ -1,8 +1,11 @@
 HELP.md
 target/
+rzp-test-key.csv
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+
+.env
 
 ### STS ###
 .apt_generated

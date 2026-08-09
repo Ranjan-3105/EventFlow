@@ -131,23 +131,19 @@ public class BookingService {
             List<Seat> seats
     ) {
 
-        List<BookingStatus> activeStatuses = List.of(
-                BookingStatus.PENDING,
-                BookingStatus.CONFIRMED
-        );
+        Instant now = Instant.now();
 
         for (Seat seat : seats) {
 
             boolean alreadyBooked =
                     bookingSeatRepository
-                            .existsBySeatIdAndBookingEventIdAndBookingStatusIn(
+                            .existsActiveBookingForSeat(
                                     seat.getId(),
                                     event.getId(),
-                                    activeStatuses
+                                    now
                             );
 
             if (alreadyBooked) {
-
                 throw new SeatAlreadyBookedException(
                         "Seat " +
                                 seat.getRowLabel() +
@@ -288,6 +284,7 @@ public class BookingService {
     ) {
 
         Instant now = Instant.now();
+        Instant expiresAt = now.plusSeconds(600);
 
         Booking booking = new Booking();
 
@@ -299,6 +296,7 @@ public class BookingService {
         booking.setSeatCount(seatCount);
         booking.setCreatedAt(now);
         booking.setUpdatedAt(now);
+        booking.setExpiresAt(expiresAt);
 
         return booking;
     }

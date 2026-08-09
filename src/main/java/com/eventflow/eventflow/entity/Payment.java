@@ -2,7 +2,6 @@ package com.eventflow.eventflow.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -14,44 +13,45 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "bookings")
+@Table(name = "payments")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Booking {
+public class Payment {
 
     @Id
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id", nullable = false)
-    private Event event;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private BookingStatus status;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "booking_id",
+            nullable = false,
+            unique = true
+    )
+    private Booking booking;
 
     @NotNull
     @PositiveOrZero
     @Column(nullable = false)
-    private BigDecimal totalAmount;
+    private BigDecimal amount;
 
-    @Positive
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private int seatCount;
+    private PaymentStatus status;
+
+    @Column(unique = true)
+    private String paymentReference;
+
+    @Column(unique = true)
+    private String razorpayOrderId;
+
+    @Column(unique = true)
+    private String razorpayPaymentId;
 
     @Column(nullable = false)
     private Instant createdAt;
 
     @Column(nullable = false)
     private Instant updatedAt;
-
-    @NotNull
-    @Column(nullable = false)
-    private Instant expiresAt;
 }
