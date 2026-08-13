@@ -1,6 +1,7 @@
 package com.eventflow.eventflow.controller;
 
 import com.eventflow.eventflow.dto.request.CreatePaymentRequest;
+import com.eventflow.eventflow.dto.request.VerifyPaymentRequest;
 import com.eventflow.eventflow.dto.response.PaymentResponse;
 import com.eventflow.eventflow.service.PaymentService;
 import jakarta.validation.Valid;
@@ -31,5 +32,16 @@ public class PaymentController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(response);
+    }
+
+    @PostMapping("/verify")
+    public ResponseEntity<PaymentResponse> verifyPayment(
+            @Valid @RequestBody VerifyPaymentRequest request
+    ) {
+
+        PaymentResponse response =
+                paymentService.verifyPayment(request);
+
+        return ResponseEntity.ok(response);
     }
 }

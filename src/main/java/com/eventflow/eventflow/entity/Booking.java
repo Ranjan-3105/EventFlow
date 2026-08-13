@@ -54,4 +54,7 @@ public class Booking {
     @NotNull
     @Column(nullable = false)
     private Instant expiresAt;
+
+    @Column(nullable = false)
+    private String lockOwner;
 }

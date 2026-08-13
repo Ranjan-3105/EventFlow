@@ -1,25 +1,32 @@
 package com.eventflow.eventflow.service;
 
 import com.eventflow.eventflow.dto.request.CreatePaymentRequest;
+import com.eventflow.eventflow.dto.request.VerifyPaymentRequest;
 import com.eventflow.eventflow.dto.response.PaymentResponse;
 import com.eventflow.eventflow.entity.Booking;
+import com.eventflow.eventflow.entity.BookingSeat;
 import com.eventflow.eventflow.entity.BookingStatus;
 import com.eventflow.eventflow.entity.Payment;
 import com.eventflow.eventflow.entity.PaymentStatus;
 import com.eventflow.eventflow.exception.BookingNotFoundException;
 import com.eventflow.eventflow.exception.PaymentException;
 import com.eventflow.eventflow.repository.BookingRepository;
+import com.eventflow.eventflow.repository.BookingSeatRepository;
 import com.eventflow.eventflow.repository.PaymentRepository;
 import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
+import com.razorpay.Utils;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -28,19 +35,28 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final BookingRepository bookingRepository;
+    private final BookingSeatRepository bookingSeatRepository;
     private final RazorpayClient razorpayClient;
+    private final SeatLockService seatLockService;
 
     @Value("${razorpay.key-id}")
     private String razorpayKeyId;
 
+    @Value("${razorpay.key-secret}")
+    private String razorpayKeySecret;
+
     public PaymentService(
             PaymentRepository paymentRepository,
             BookingRepository bookingRepository,
-            RazorpayClient razorpayClient
+            BookingSeatRepository bookingSeatRepository,
+            RazorpayClient razorpayClient,
+            SeatLockService seatLockService
     ) {
         this.paymentRepository = paymentRepository;
         this.bookingRepository = bookingRepository;
+        this.bookingSeatRepository = bookingSeatRepository;
         this.razorpayClient = razorpayClient;
+        this.seatLockService = seatLockService;
     }
 
     public PaymentResponse createPayment(
@@ -131,14 +147,7 @@ public class PaymentService {
             Payment savedPayment =
                     paymentRepository.save(payment);
 
-            return new PaymentResponse(
-                    savedPayment.getId(),
-                    booking.getId(),
-                    savedPayment.getAmount(),
-                    savedPayment.getStatus(),
-                    savedPayment.getRazorpayOrderId(),
-                    razorpayKeyId
-            );
+            return mapToResponse(savedPayment);
 
         } catch (Exception ex) {
 
@@ -182,5 +191,237 @@ public class PaymentService {
                     "Booking has expired."
             );
         }
+    }
+
+    public PaymentResponse verifyPayment(
+            VerifyPaymentRequest request
+    ) {
+
+        Payment payment =
+                paymentRepository
+                        .findByRazorpayOrderId(
+                                request.razorpayOrderId()
+                        )
+                        .orElseThrow(() ->
+                                new PaymentException(
+                                        "Payment order not found."
+                                )
+                        );
+
+        /*
+         * Idempotency:
+         *
+         * If the same successful payment verification request
+         * arrives again, simply return the existing successful
+         * payment instead of processing it again.
+         */
+        if (payment.getStatus() == PaymentStatus.SUCCESS) {
+            return mapToResponse(payment);
+        }
+
+        if (payment.getStatus() == PaymentStatus.FAILED) {
+            throw new PaymentException(
+                    "Payment has already failed."
+            );
+        }
+
+        Booking booking =
+                payment.getBooking();
+
+        /*
+         * The authenticated user must own the booking.
+         */
+        String authenticatedEmail =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication()
+                        .getName();
+
+        if (!booking.getUser()
+                .getEmail()
+                .equals(authenticatedEmail)) {
+
+            throw new PaymentException(
+                    "You are not authorized to verify this payment."
+            );
+        }
+
+        /*
+         * Verify that the order ID belongs to this payment.
+         */
+        if (!payment.getRazorpayOrderId()
+                .equals(request.razorpayOrderId())) {
+
+            throw new PaymentException(
+                    "Payment order mismatch."
+            );
+        }
+
+        /*
+         * Verify Razorpay signature.
+         */
+        JSONObject attributes =
+                new JSONObject();
+
+        attributes.put(
+                "razorpay_order_id",
+                request.razorpayOrderId()
+        );
+
+        attributes.put(
+                "razorpay_payment_id",
+                request.razorpayPaymentId()
+        );
+
+        attributes.put(
+                "razorpay_signature",
+                request.razorpaySignature()
+        );
+
+        try {
+
+            boolean valid =
+                    Utils.verifyPaymentSignature(
+                            attributes,
+                            razorpayKeySecret
+                    );
+
+            if (!valid) {
+
+                throw new PaymentException(
+                        "Invalid payment signature."
+                );
+            }
+
+        } catch (PaymentException ex) {
+
+            throw ex;
+
+        } catch (Exception ex) {
+
+            throw new PaymentException(
+                    "Unable to verify payment signature."
+            );
+        }
+
+        Instant now =
+                Instant.now();
+
+        /*
+         * The booking must still be payable.
+         */
+        if (booking.getStatus()
+                != BookingStatus.PENDING) {
+
+            throw new PaymentException(
+                    "Booking is no longer pending."
+            );
+        }
+
+        if (booking.getExpiresAt()
+                .isBefore(now)) {
+
+            throw new PaymentException(
+                    "Booking has expired."
+            );
+        }
+
+        /*
+         * Capture the values needed by the Redis cleanup
+         * BEFORE the transaction completes.
+         *
+         * This prevents the afterCommit callback from depending
+         * on lazy JPA entities after the transaction has ended.
+         */
+        UUID eventId =
+                booking.getEvent().getId();
+
+        String lockOwner =
+                booking.getLockOwner();
+
+        List<UUID> seatIds =
+                bookingSeatRepository
+                        .findByBookingId(booking.getId())
+                        .stream()
+                        .map(bookingSeat ->
+                                bookingSeat
+                                        .getSeat()
+                                        .getId()
+                        )
+                        .toList();
+
+        /*
+         * Payment becomes successful.
+         */
+        payment.setRazorpayPaymentId(
+                request.razorpayPaymentId()
+        );
+
+        payment.setPaymentReference(
+                request.razorpayPaymentId()
+        );
+
+        payment.setStatus(
+                PaymentStatus.SUCCESS
+        );
+
+        payment.setUpdatedAt(now);
+
+        /*
+         * Booking becomes confirmed.
+         */
+        booking.setStatus(
+                BookingStatus.CONFIRMED
+        );
+
+        booking.setUpdatedAt(now);
+
+        Payment savedPayment =
+                paymentRepository.save(payment);
+
+        bookingRepository.save(booking);
+
+        /*
+         * Release Redis locks only after the database
+         * transaction successfully commits.
+         */
+        if (TransactionSynchronizationManager
+                .isSynchronizationActive()) {
+
+            TransactionSynchronizationManager
+                    .registerSynchronization(
+                            new TransactionSynchronization() {
+
+                                @Override
+                                public void afterCommit() {
+
+                                    for (UUID seatId : seatIds) {
+
+                                        seatLockService.releaseLock(
+                                                eventId,
+                                                seatId,
+                                                lockOwner
+                                        );
+                                    }
+                                }
+                            }
+                    );
+        }
+
+        return mapToResponse(savedPayment);
+    }
+
+    private PaymentResponse mapToResponse(
+            Payment payment
+    ) {
+
+        return new PaymentResponse(
+                payment.getId(),
+                payment.getBooking().getId(),
+                payment.getAmount(),
+                payment.getStatus(),
+                payment.getRazorpayOrderId(),
+                razorpayKeyId
+        );
     }
 }

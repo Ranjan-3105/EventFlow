@@ -13,6 +13,8 @@ import java.util.UUID;
 public interface BookingSeatRepository
         extends JpaRepository<BookingSeat, UUID> {
 
+    List<BookingSeat> findByBookingId(UUID bookingId);
+
     @Query("""
             SELECT CASE WHEN COUNT(bs) > 0 THEN true ELSE false END
             FROM BookingSeat bs

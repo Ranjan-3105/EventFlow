@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>EventFlow Razorpay Test</title>
+</head>
+
+<body>
+
+<h2>EventFlow - Razorpay Test Payment</h2>
+
+<p>Amount: ₹1000</p>
+
+<button id="pay-btn">Pay ₹1000</button>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<script>
+    const options = {
+        key: "rzp_test_TNmAsOqOGMpSRG",
+
+        amount: 100000,
+
+        currency: "INR",
+
+        name: "EventFlow",
+
+        description: "EventFlow Ticket Booking",
+
+        order_id: "order_TPBw2y2EA1GZQK",
+
+        prefill: {
+            name: "Test User",
+            email: "testuser@example.com"
+        },
+
+        handler: function (response) {
+
+            console.log("Payment successful!");
+            console.log("Order ID:", response.razorpay_order_id);
+            console.log("Payment ID:", response.razorpay_payment_id);
+            console.log("Signature:", response.razorpay_signature);
+
+            alert(
+                "Payment successful!\n\n" +
+                "Payment ID: " + response.razorpay_payment_id + "\n\n" +
+                "Check the browser console (F12) to copy your signature!"
+            );
+        }
+    };
+
+    const razorpay = new Razorpay(options);
+
+    document.getElementById("pay-btn").onclick = function (e) {
+        razorpay.open();
+        e.preventDefault();
+    };
+</script>
+
+</body>
+</html>

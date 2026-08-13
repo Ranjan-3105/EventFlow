@@ -219,7 +219,8 @@ public class BookingService {
                     user,
                     event,
                     totalAmount,
-                    seats.size()
+                    seats.size(),
+                    lockOwner
             );
 
             Booking savedBooking =
@@ -280,7 +281,8 @@ public class BookingService {
             User user,
             Event event,
             BigDecimal totalAmount,
-            int seatCount
+            int seatCount,
+            String lockOwner
     ) {
 
         Instant now = Instant.now();
@@ -297,6 +299,7 @@ public class BookingService {
         booking.setCreatedAt(now);
         booking.setUpdatedAt(now);
         booking.setExpiresAt(expiresAt);
+        booking.setLockOwner(lockOwner);
 
         return booking;
     }
