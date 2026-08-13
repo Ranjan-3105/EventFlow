@@ -10,6 +10,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+
+import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/bookings")
@@ -32,5 +37,25 @@ public class BookingController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<BookingResponse>> getUserBookings() {
+        return ResponseEntity.ok(bookingService.getUserBookings());
+    }
+
+    @GetMapping("/{bookingId}")
+    public ResponseEntity<BookingResponse> getUserBooking(
+            @PathVariable UUID bookingId
+    ) {
+        return ResponseEntity.ok(bookingService.getUserBooking(bookingId));
+    }
+
+    @PostMapping("/{bookingId}/cancel")
+    public ResponseEntity<Void> cancelBooking(
+            @PathVariable UUID bookingId
+    ) {
+        bookingService.cancelBooking(bookingId);
+        return ResponseEntity.noContent().build();
     }
 }

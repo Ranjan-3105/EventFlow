@@ -34,4 +34,22 @@ public interface BookingSeatRepository
             @Param("eventId") UUID eventId,
             @Param("now") Instant now
     );
+
+    @Query("""
+            SELECT bs.seat.id
+            FROM BookingSeat bs
+            JOIN bs.booking b
+            WHERE b.event.id = :eventId
+              AND (
+                    b.status = com.eventflow.eventflow.entity.BookingStatus.CONFIRMED
+                    OR (
+                        b.status = com.eventflow.eventflow.entity.BookingStatus.PENDING
+                        AND b.expiresAt > :now
+                    )
+                  )
+            """)
+    List<UUID> findActiveBookedSeatIds(
+            @Param("eventId") UUID eventId,
+            @Param("now") Instant now
+    );
 }

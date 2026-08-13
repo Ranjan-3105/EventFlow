@@ -8,9 +8,16 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.UUID;
+import java.util.List;
+import java.util.Optional;
+import com.eventflow.eventflow.entity.EventStatus;
 
 
 public interface EventRepository extends JpaRepository<Event, UUID> {
+
+    List<Event> findByStatus(EventStatus status);
+
+    Optional<Event> findByIdAndStatus(UUID id, EventStatus status);
 
     @Query("""
         SELECT COUNT(e) > 0

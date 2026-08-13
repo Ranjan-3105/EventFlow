@@ -10,6 +10,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+
+import java.util.List;
+import java.util.UUID;
+import com.eventflow.eventflow.dto.response.SeatAvailabilityResponse;
 
 @RestController
 @RequestMapping("/api/events")
@@ -31,5 +37,24 @@ public class EventController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<EventResponse>> getEvents() {
+        return ResponseEntity.ok(eventService.getPublishedEvents());
+    }
+
+    @GetMapping("/{eventId}")
+    public ResponseEntity<EventResponse> getEvent(
+            @PathVariable UUID eventId
+    ) {
+        return ResponseEntity.ok(eventService.getPublishedEvent(eventId));
+    }
+
+    @GetMapping("/{eventId}/seats")
+    public ResponseEntity<List<SeatAvailabilityResponse>> getEventSeats(
+            @PathVariable UUID eventId
+    ) {
+        return ResponseEntity.ok(eventService.getEventSeats(eventId));
     }
 }

@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface BookingRepository
@@ -15,4 +16,8 @@ public interface BookingRepository
             BookingStatus status,
             Instant expiresAt
     );
+
+    List<Booking> findByUser_EmailOrderByCreatedAtDesc(String email);
+
+    Optional<Booking> findByIdAndUser_Email(UUID id, String email);
 }

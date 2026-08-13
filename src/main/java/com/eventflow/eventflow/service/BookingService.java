@@ -23,6 +23,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import com.eventflow.eventflow.exception.BookingNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @Transactional
@@ -34,6 +37,7 @@ public class BookingService {
     private final SeatRepository seatRepository;
     private final UserRepository userRepository;
     private final SeatLockService seatLockService;
+    private static final Logger log = LoggerFactory.getLogger(BookingService.class);
 
     public BookingService(
             BookingRepository bookingRepository,
@@ -403,6 +407,52 @@ public class BookingService {
                     seat.getId(),
                     owner
             );
+        }
+    }
+
+    public List<BookingResponse> getUserBookings() {
+        User user = getAuthenticatedUser();
+        return bookingRepository.findByUser_EmailOrderByCreatedAtDesc(user.getEmail())
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    public BookingResponse getUserBooking(UUID bookingId) {
+        User user = getAuthenticatedUser();
+        Booking booking = bookingRepository.findByIdAndUser_Email(bookingId, user.getEmail())
+                .orElseThrow(() -> new BookingNotFoundException("Booking not found"));
+        return mapToResponse(booking);
+    }
+
+    public void cancelBooking(UUID bookingId) {
+        User user = getAuthenticatedUser();
+        Booking booking = bookingRepository.findByIdAndUser_Email(bookingId, user.getEmail())
+                .orElseThrow(() -> new BookingNotFoundException("Booking not found"));
+
+        if (booking.getStatus() == BookingStatus.FAILED ||
+            booking.getStatus() == BookingStatus.CANCELLED ||
+            booking.getStatus() == BookingStatus.EXPIRED) {
+            throw new InvalidBookingException("Cannot cancel a booking that is " + booking.getStatus());
+        }
+
+        boolean wasPending = (booking.getStatus() == BookingStatus.PENDING);
+
+        booking.setStatus(BookingStatus.CANCELLED);
+        booking.setUpdatedAt(Instant.now());
+        bookingRepository.save(booking);
+
+        if (wasPending) {
+            String lockOwner = booking.getLockOwner();
+            if (lockOwner == null || lockOwner.isBlank()) {
+                log.warn("Cannot release Redis locks for PENDING booking {}: lockOwner is null or blank", bookingId);
+            } else {
+                List<Seat> bookedSeats = bookingSeatRepository.findByBookingId(bookingId)
+                        .stream()
+                        .map(BookingSeat::getSeat)
+                        .toList();
+                releaseLocks(booking.getEvent(), bookedSeats, lockOwner);
+            }
         }
     }
 }

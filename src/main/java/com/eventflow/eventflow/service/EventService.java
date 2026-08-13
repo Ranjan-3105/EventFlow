@@ -19,8 +19,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
-
+import com.eventflow.eventflow.dto.response.SeatAvailabilityResponse;
+import com.eventflow.eventflow.dto.response.SeatStatus;
+import com.eventflow.eventflow.entity.Seat;
+import com.eventflow.eventflow.exception.EventNotFoundException;
+import com.eventflow.eventflow.repository.BookingSeatRepository;
+import com.eventflow.eventflow.repository.SeatRepository;
 @Service
 @Transactional
 public class EventService {
@@ -28,15 +36,24 @@ public class EventService {
     private final EventRepository eventRepository;
     private final HallRepository hallRepository;
     private final UserRepository userRepository;
+    private final SeatRepository seatRepository;
+    private final BookingSeatRepository bookingSeatRepository;
+    private final SeatLockService seatLockService;
 
 
     public EventService(EventRepository eventRepository,
                         HallRepository hallRepository,
-                        UserRepository userRepository) {
+                        UserRepository userRepository,
+                        SeatRepository seatRepository,
+                        BookingSeatRepository bookingSeatRepository,
+                        SeatLockService seatLockService) {
 
         this.eventRepository = eventRepository;
         this.hallRepository = hallRepository;
         this.userRepository = userRepository;
+        this.seatRepository = seatRepository;
+        this.bookingSeatRepository = bookingSeatRepository;
+        this.seatLockService = seatLockService;
     }
 
 
@@ -105,6 +122,67 @@ public class EventService {
                 savedEvent.getBasePrice()
         );
 
+    }
+
+    public List<EventResponse> getPublishedEvents() {
+        return eventRepository.findByStatus(EventStatus.PUBLISHED)
+                .stream()
+                .map(event -> new EventResponse(
+                        event.getId(),
+                        event.getTitle(),
+                        event.getStartTime(),
+                        event.getEndTime(),
+                        event.getStatus(),
+                        event.getBasePrice()
+                ))
+                .toList();
+    }
+
+    public EventResponse getPublishedEvent(UUID eventId) {
+        Event event = eventRepository.findByIdAndStatus(eventId, EventStatus.PUBLISHED)
+                .orElseThrow(() -> new EventNotFoundException("Event not found"));
+
+        return new EventResponse(
+                event.getId(),
+                event.getTitle(),
+                event.getStartTime(),
+                event.getEndTime(),
+                event.getStatus(),
+                event.getBasePrice()
+        );
+    }
+
+    public List<SeatAvailabilityResponse> getEventSeats(UUID eventId) {
+        Event event = eventRepository.findByIdAndStatus(eventId, EventStatus.PUBLISHED)
+                .orElseThrow(() -> new EventNotFoundException("Event not found"));
+
+        List<Seat> allSeats = seatRepository.findByHallId(event.getHall().getId());
+
+        List<UUID> seatIds = allSeats.stream().map(Seat::getId).toList();
+
+        Instant now = Instant.now();
+        List<UUID> bookedSeatIds = bookingSeatRepository.findActiveBookedSeatIds(eventId, now);
+
+        Set<UUID> lockedSeatIds = seatLockService.getLockedSeatIds(eventId, seatIds);
+
+        Set<UUID> bookedSeatIdsSet = new HashSet<>(bookedSeatIds);
+
+        return allSeats.stream().map(seat -> {
+            SeatStatus status = SeatStatus.AVAILABLE;
+            if (bookedSeatIdsSet.contains(seat.getId())) {
+                status = SeatStatus.BOOKED;
+            } else if (lockedSeatIds.contains(seat.getId())) {
+                status = SeatStatus.LOCKED;
+            }
+
+            return new SeatAvailabilityResponse(
+                    seat.getId(),
+                    seat.getRowLabel(),
+                    seat.getSeatNumber(),
+                    seat.getSeatType().name(),
+                    status
+            );
+        }).toList();
     }
 }
 
