@@ -2,16 +2,22 @@ package com.eventflow.eventflow.service;
 
 import com.eventflow.eventflow.dto.request.CreateEventRequest;
 import com.eventflow.eventflow.dto.response.EventResponse;
+import com.eventflow.eventflow.dto.response.SeatAvailabilityResponse;
+import com.eventflow.eventflow.dto.response.SeatStatus;
 import com.eventflow.eventflow.entity.Event;
 import com.eventflow.eventflow.entity.EventStatus;
 import com.eventflow.eventflow.entity.Hall;
+import com.eventflow.eventflow.entity.Seat;
 import com.eventflow.eventflow.entity.User;
+import com.eventflow.eventflow.exception.EventNotFoundException;
 import com.eventflow.eventflow.exception.HallAlreadyBookedException;
 import com.eventflow.eventflow.exception.HallNotFoundException;
 import com.eventflow.eventflow.exception.InvalidEventTimeException;
 import com.eventflow.eventflow.exception.UserNotFoundException;
+import com.eventflow.eventflow.repository.BookingSeatRepository;
 import com.eventflow.eventflow.repository.EventRepository;
 import com.eventflow.eventflow.repository.HallRepository;
+import com.eventflow.eventflow.repository.SeatRepository;
 import com.eventflow.eventflow.repository.UserRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,12 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import com.eventflow.eventflow.dto.response.SeatAvailabilityResponse;
-import com.eventflow.eventflow.dto.response.SeatStatus;
-import com.eventflow.eventflow.entity.Seat;
-import com.eventflow.eventflow.exception.EventNotFoundException;
-import com.eventflow.eventflow.repository.BookingSeatRepository;
-import com.eventflow.eventflow.repository.SeatRepository;
+
 @Service
 @Transactional
 public class EventService {
@@ -39,6 +40,7 @@ public class EventService {
     private final SeatRepository seatRepository;
     private final BookingSeatRepository bookingSeatRepository;
     private final SeatLockService seatLockService;
+    private final EventCacheService eventCacheService;
 
 
     public EventService(EventRepository eventRepository,
@@ -46,7 +48,8 @@ public class EventService {
                         UserRepository userRepository,
                         SeatRepository seatRepository,
                         BookingSeatRepository bookingSeatRepository,
-                        SeatLockService seatLockService) {
+                        SeatLockService seatLockService,
+                        EventCacheService eventCacheService) {
 
         this.eventRepository = eventRepository;
         this.hallRepository = hallRepository;
@@ -54,6 +57,7 @@ public class EventService {
         this.seatRepository = seatRepository;
         this.bookingSeatRepository = bookingSeatRepository;
         this.seatLockService = seatLockService;
+        this.eventCacheService = eventCacheService;
     }
 
 
@@ -125,17 +129,35 @@ public class EventService {
     }
 
     public List<EventResponse> getPublishedEvents() {
-        return eventRepository.findByStatus(EventStatus.PUBLISHED)
-                .stream()
-                .map(event -> new EventResponse(
-                        event.getId(),
-                        event.getTitle(),
-                        event.getStartTime(),
-                        event.getEndTime(),
-                        event.getStatus(),
-                        event.getBasePrice()
-                ))
-                .toList();
+
+        // 1. Check Redis first
+        List<EventResponse> cached =
+                eventCacheService.getPublishedEvents();
+
+        // 2. Cache HIT
+        if (cached != null) {
+            return cached;
+        }
+
+        // 3. Cache MISS → PostgreSQL
+        List<EventResponse> events =
+                eventRepository.findByStatus(EventStatus.PUBLISHED)
+                        .stream()
+                        .map(event -> new EventResponse(
+                                event.getId(),
+                                event.getTitle(),
+                                event.getStartTime(),
+                                event.getEndTime(),
+                                event.getStatus(),
+                                event.getBasePrice()
+                        ))
+                        .toList();
+
+        // 4. Store result in Redis for 5 minutes
+        eventCacheService.cachePublishedEvents(events);
+
+        // 5. Return result
+        return events;
     }
 
     public EventResponse getPublishedEvent(UUID eventId) {
@@ -183,6 +205,47 @@ public class EventService {
                     status
             );
         }).toList();
+    }
+
+    public EventResponse publishEvent(UUID eventId) {
+
+        String email =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication()
+                        .getName();
+
+        Event event =
+                eventRepository
+                        .findByIdAndOrganizer_Email(eventId, email)
+                        .orElseThrow(() ->
+                                new EventNotFoundException(
+                                        "Event not found"
+                                )
+                        );
+
+        if (event.getStatus() != EventStatus.DRAFT) {
+            throw new IllegalStateException(
+                    "Only draft events can be published"
+            );
+        }
+
+        event.setStatus(EventStatus.PUBLISHED);
+        event.setUpdatedAt(Instant.now());
+
+        Event savedEvent =
+                eventRepository.save(event);
+
+        eventCacheService.invalidatePublishedEvents();
+
+        return new EventResponse(
+                savedEvent.getId(),
+                savedEvent.getTitle(),
+                savedEvent.getStartTime(),
+                savedEvent.getEndTime(),
+                savedEvent.getStatus(),
+                savedEvent.getBasePrice()
+        );
     }
 }
 

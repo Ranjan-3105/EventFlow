@@ -57,4 +57,14 @@ public class EventController {
     ) {
         return ResponseEntity.ok(eventService.getEventSeats(eventId));
     }
+
+    @PostMapping("/{eventId}/publish")
+    public ResponseEntity<EventResponse> publishEvent(
+            @PathVariable UUID eventId
+    ) {
+
+        return ResponseEntity.ok(
+                eventService.publishEvent(eventId)
+        );
+    }
 }

@@ -18,6 +18,7 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
     List<Event> findByStatus(EventStatus status);
 
     Optional<Event> findByIdAndStatus(UUID id, EventStatus status);
+    Optional<Event> findByIdAndOrganizer_Email(UUID eventId, String email);
 
     @Query("""
         SELECT COUNT(e) > 0
