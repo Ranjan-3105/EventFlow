@@ -5,6 +5,8 @@ import com.eventflow.eventflow.dto.response.UserResponse;
 import com.eventflow.eventflow.entity.Role;
 import com.eventflow.eventflow.entity.User;
 import com.eventflow.eventflow.exception.UserAlreadyExistsException;
+import com.eventflow.eventflow.kafka.KafkaEventProducer;
+import com.eventflow.eventflow.kafka.event.UserRegisteredEvent;
 import com.eventflow.eventflow.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -17,10 +19,12 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final KafkaEventProducer kafkaEventProducer;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, KafkaEventProducer kafkaEventProducer) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.kafkaEventProducer = kafkaEventProducer;
     }
 
     /**
@@ -65,6 +69,15 @@ public class UserService {
 
         // Persist Entity
         User savedUser = userRepository.save(user);
+
+        kafkaEventProducer.publishUserRegistered(
+                new UserRegisteredEvent(
+                        savedUser.getId(),
+                        savedUser.getFirstName(),
+                        savedUser.getEmail(),
+                        Instant.now()
+                )
+        );
 
         // Entity -> Response DTO Mapping
         return new UserResponse(
