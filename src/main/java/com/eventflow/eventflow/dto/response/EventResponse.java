@@ -9,8 +9,10 @@ import java.util.UUID;
 public record EventResponse(
         UUID id,
         String title,
+        String description,
         Instant startTime,
         Instant endTime,
         EventStatus status,
-        BigDecimal basePrice
-){}
+        BigDecimal basePrice,
+        String bannerUrl
+) {}

@@ -120,10 +120,12 @@ public class EventService {
         return new EventResponse(
                 savedEvent.getId(),
                 savedEvent.getTitle(),
+                savedEvent.getDescription(),
                 savedEvent.getStartTime(),
                 savedEvent.getEndTime(),
                 savedEvent.getStatus(),
-                savedEvent.getBasePrice()
+                savedEvent.getBasePrice(),
+                savedEvent.getBannerUrl()
         );
 
     }
@@ -146,10 +148,12 @@ public class EventService {
                         .map(event -> new EventResponse(
                                 event.getId(),
                                 event.getTitle(),
+                                event.getDescription(),
                                 event.getStartTime(),
                                 event.getEndTime(),
                                 event.getStatus(),
-                                event.getBasePrice()
+                                event.getBasePrice(),
+                                event.getBannerUrl()
                         ))
                         .toList();
 
@@ -167,10 +171,12 @@ public class EventService {
         return new EventResponse(
                 event.getId(),
                 event.getTitle(),
+                event.getDescription(),
                 event.getStartTime(),
                 event.getEndTime(),
                 event.getStatus(),
-                event.getBasePrice()
+                event.getBasePrice(),
+                event.getBannerUrl()
         );
     }
 
@@ -241,10 +247,12 @@ public class EventService {
         return new EventResponse(
                 savedEvent.getId(),
                 savedEvent.getTitle(),
+                savedEvent.getDescription(),
                 savedEvent.getStartTime(),
                 savedEvent.getEndTime(),
                 savedEvent.getStatus(),
-                savedEvent.getBasePrice()
+                savedEvent.getBasePrice(),
+                savedEvent.getBannerUrl()
         );
     }
 }
