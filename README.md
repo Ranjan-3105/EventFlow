@@ -1,323 +1,115 @@
 # 🎟️ EventFlow
 
-> A production-inspired Event Ticket Booking System built with **Spring Boot**, documenting the journey from a monolithic backend to a scalable distributed system.
+> A production-inspired full-stack Event Ticket Booking System.
 
-EventFlow is a hands-on backend engineering project focused on understanding how real-world event booking platforms are designed. Rather than building isolated CRUD APIs, the project models production workflows while documenting every major architectural decision, business rule, and Spring Boot concept along the way.
+EventFlow is a comprehensive event booking platform that handles user authentication, event and venue management, dynamic seat selection, secure payment processing via Razorpay, and asynchronous email notifications using Kafka.
 
----
-
-# ✨ Current Features
-
-## 🔐 Authentication & Authorization
-
-- JWT Authentication
-- Stateless Security
-- Spring Security Integration
-- Role-Based Access Control (RBAC)
-- BCrypt Password Encryption
+The project documents the complete journey from monolithic development to a scalable, distributed architecture.
 
 ---
 
-## 👥 User Management
+## ✨ Key Features
 
-- User Registration
-- Secure Login
-- Custom UserDetailsService
-- Role-based Authorization
-
----
-
-## 🏢 Venue & Hall Management
-
-- Admin-only Venue Creation
-- Hall Creation
-- Automatic Hall Capacity Calculation
-- Venue Validation
-- Duplicate Hall Detection
+- **Authentication & Security:** Secure JWT-based stateless authentication, role-based access control (Admin, Organizer, User), and BCrypt password hashing.
+- **Venue & Event Management:** Robust administrative tools for creating venues, configuring custom hall seating layouts, and publishing events with dynamic pricing.
+- **Seat Booking System:** Interactive frontend seat map, concurrent locking using Redis, and real-time validation.
+- **Payment Integration:** Secure checkout via Razorpay, including server-side signature verification.
+- **Asynchronous Notifications:** Kafka event streaming to send decoupled booking confirmation emails via Brevo SMTP.
+- **Modern User Interface:** A responsive, premium frontend built with React, Tailwind CSS, and Shadcn UI.
 
 ---
 
-## 💺 Seat Management
+## 🏗️ Architecture
 
-- Automatic Seat Layout Generation
-- Batch Seat Creation
-- Configurable Rows & Seats per Row
-- Automatic Hall Capacity Calculation
-- Duplicate Layout Prevention
-- Seat Layout Validation
-
----
-
-## 🎭 Event Management
-
-- Organizer-only Event Creation
-- Hall Availability Validation
-- Event Scheduling Conflict Detection
-- Draft Event Support
-
----
-
-## ⚙️ Backend Infrastructure
-
-- Layered Architecture
-- DTO Pattern
-- Spring Data JPA
-- Global Exception Handling
-- Bean Validation
-- Transaction Management
-- PostgreSQL Integration
-
----
-
-# 🛠️ Tech Stack
-
-| Category | Technologies |
-|----------|--------------|
-| Language | Java 21 |
-| Framework | Spring Boot |
-| Security | Spring Security, JWT |
-| ORM | Spring Data JPA, Hibernate |
-| Database | PostgreSQL |
-| Build Tool | Maven |
-| Containerization | Docker |
-
-### Planned
-
-- Redis
-- Apache Kafka
-- Elasticsearch
-- Docker Compose
-- API Gateway
-- AWS
-- Microservices
-
----
-
-# 📂 Project Structure
+EventFlow is currently implemented as a monolithic backend with decoupled infrastructure services, and a standalone single-page application frontend.
 
 ```text
-src/main/java
+       React Frontend (Vite)
+                │
+                ▼
+        Spring Boot Backend
+                │
+    ┌───────────┼───────────┐
+    ▼           ▼           ▼
+PostgreSQL    Redis       Kafka
+(Primary)   (Caching) (Event Stream)
+```
+
+**Core Backend Layers:**
+- Controller (API routing, request validation)
+- Service (Business logic, transaction management)
+- Repository (Spring Data JPA)
+- Domain / Entity (Hibernate ORM)
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+- **Framework:** React 19 + TypeScript + Vite
+- **Styling:** Tailwind CSS + Shadcn UI
+- **Routing:** React Router
+- **HTTP Client:** Axios
+
+### Backend
+- **Framework:** Spring Boot (Java 21)
+- **Security:** Spring Security + JWT
+- **Database:** PostgreSQL + Hibernate / Spring Data JPA
+- **Caching & Locks:** Redis
+- **Messaging:** Apache Kafka
+- **Payments:** Razorpay Java SDK
+- **Mailing:** JavaMailSender (Brevo SMTP)
+
+---
+
+## 🔄 Core Booking Flow
+
+1. **User Auth:** User registers and logs in, receiving a JWT token.
+2. **Event Selection:** User browses available events and selects a showtime.
+3. **Seat Selection:** User views the hall layout and selects available seats.
+4. **Checkout Initialization:** The frontend initiates a booking. The backend locks the requested seats in PostgreSQL/Redis.
+5. **Payment Processing:** A Razorpay Order is created. The user pays via the Razorpay checkout UI.
+6. **Payment Verification:** Razorpay calls the frontend with a signature. The frontend forwards this to the backend for cryptographic verification.
+7. **Confirmation & Notification:** The backend marks the booking as `CONFIRMED` and publishes a `booking.confirmed` event to Kafka.
+8. **Email Delivery:** The Kafka consumer reads the event and sends a confirmation email to the user.
+
+---
+
+## 📂 Repository Structure
+
+```text
+EventFlow/
+├── Backend/                 # Spring Boot application source code
+│   ├── src/main/java/       # Java source files (controllers, services, entities)
+│   ├── src/main/resources/  # Application properties and configs
+│   ├── pom.xml              # Maven dependencies
+│   └── docker-compose.yml   # Infrastructure definitions (Postgres, Redis, Kafka)
 │
-├── config/
-├── controller/
-├── dto/
-│   ├── request/
-│   └── response/
-├── entity/
-├── exception/
-├── repository/
-├── security/
-├── service/
-└── EventflowApplication.java
+├── frontend/                # React + Vite application
+│   ├── src/                 # React components, pages, context, services
+│   ├── tailwind.config.js   # Tailwind configuration
+│   └── package.json         # Node dependencies
+│
+└── docs/                    # Project documentation
+    └── SETUP.md             # Installation and startup guide
 ```
 
 ---
 
-# 🏗️ Project Architecture
+## 🚀 Quick Start
 
-```text
-                Client
-                   │
-                   ▼
-            Spring Security
-                   │
-                   ▼
-             JWT Filter Chain
-                   │
-                   ▼
-              Controller
-                   │
-                   ▼
-               Service
-                   │
-                   ▼
-             Repository
-                   │
-                   ▼
-             PostgreSQL
-```
+To run the project locally, you will need Java 21, Node.js 20+, and Docker installed.
+
+Detailed step-by-step instructions for environment configuration and startup are available in the **[Setup Guide](docs/SETUP.md)**.
+
+### Summary
+1. Copy `.env.example` to `.env` in both `Backend` and `frontend`.
+2. Start infrastructure: `cd Backend && docker-compose up -d`
+3. Start backend: `.\mvnw spring-boot:run`
+4. Start frontend: `cd frontend && npm install && npm run dev`
 
 ---
 
-# 📚 Documentation
+## 📚 API Documentation
 
-One of the primary goals of EventFlow is to document every major backend concept while implementing it.
-
-Current documentation includes:
-
-- Spring Boot Fundamentals
-- PostgreSQL & Docker Setup
-- Project Architecture
-- Spring Security & JWT
-- Request Lifecycle
-- Exception Handling
-- Admin & Organizer Workflow
-- Domain Model
-- JPA Relationships
-- Query Derivation vs JPQL
-- Validation vs Business Rules
-- Event Module
-- Seat Module
-
-Documentation grows alongside every completed module.
-
----
-
-# 🚀 Current Progress
-
-## Environment
-
-- [x] Spring Boot
-- [x] Java 21
-- [x] Maven
-- [x] Docker
-- [x] PostgreSQL
-
----
-
-## Security
-
-- [x] User Registration
-- [x] Login
-- [x] JWT Authentication
-- [x] Stateless Sessions
-- [x] Role-Based Authorization
-- [x] Authentication Entry Point
-- [x] Access Denied Handler
-
----
-
-## Core Backend
-
-- [x] Layered Architecture
-- [x] DTO Pattern
-- [x] Repository Layer
-- [x] Service Layer
-- [x] Controller Layer
-- [x] Bean Validation
-- [x] Global Exception Handling
-- [x] Transaction Management
-
----
-
-## Modules
-
-- [x] User
-- [x] Venue
-- [x] Hall
-- [x] Seat
-- [x] Event
-- [ ] Booking
-- [ ] Payment
-- [ ] Ticket
-- [ ] Notification
-
----
-
-# 🗺️ Roadmap
-
-## Booking System
-
-- Booking Engine
-- Redis Seat Locking
-- Payment Integration
-- Ticket Generation
-- Booking History
-
-## Scalability
-
-- Redis Caching
-- Kafka Event Streaming
-- Elasticsearch
-- API Gateway
-- Docker Compose
-- Microservices
-- AWS Deployment
-
----
-
-# 🎯 Learning Objectives
-
-The purpose of EventFlow is not only to build an event booking system but also to understand how enterprise backend systems are designed.
-
-Each module focuses on:
-
-- Understanding the business problem
-- Designing the domain model
-- Implementing business rules
-- Applying Spring Boot best practices
-- Writing production-style documentation
-- Thinking about scalability from the beginning
-
-The repository serves as both a production-inspired backend project and a personal backend engineering handbook.
-
----
-
-# 📈 Domain Model
-
-```text
-                   User
-                     │
-          ┌──────────┴──────────┐
-          │                     │
-       ADMIN               ORGANIZER
-          │                     │
-          ▼                     ▼
-       Venue ───────────────► Event
-          │                     ▲
-          ▼                     │
-        Hall ───────────────────┘
-          │
-          ▼
-        Seats
-```
-
----
-
-# 🚀 Upcoming Architecture
-
-```text
-Venue
-  │
-  ▼
-Hall
-  │
-  ▼
-Seat
-  │
-  ▼
-Booking
-  │
-  ▼
-Payment
-  │
-  ▼
-Ticket
-```
-
-Eventually:
-
-```text
-Client
-   │
-API Gateway
-   │
-┌──────┬────────┬────────┬────────┐
-│      │        │        │
-User  Event  Booking  Payment
-Service Service Service Service
-               │
-            Redis
-               │
-            Kafka
-```
-
----
-
-# ⭐ Project Status
-
-🚧 **Actively under development**
-
-Completed modules are fully tested with validation, exception handling, and business rules before moving to the next feature.
-
-The next major milestone is building the **Booking Engine**, followed by **Redis-based seat locking**, **Payment Integration**, and **Kafka-driven asynchronous workflows**.
+Currently, API contracts are strictly defined and documented within the Spring Boot `Controller` and `DTO` layers. Inspect the classes located in `Backend/src/main/java/com/eventflow/eventflow/controller/` for detailed request and response payloads.
