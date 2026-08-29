@@ -1,5 +1,6 @@
 package com.eventflow.eventflow.kafka;
 
+import com.eventflow.eventflow.kafka.event.BookingConfirmedEvent;
 import com.eventflow.eventflow.kafka.event.UserRegisteredEvent;
 import com.eventflow.eventflow.service.EmailService;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -21,5 +22,13 @@ public class NotificationConsumer {
     public void handleUserRegistered(UserRegisteredEvent event) {
 
         emailService.sendWelcomeEmail(event);
+    }
+
+    @KafkaListener(
+            topics = "booking.confirmed",
+            groupId = "eventflow-notifications"
+    )
+    public void handleBookingConfirmed(BookingConfirmedEvent event) {
+        emailService.sendBookingConfirmationEmail(event);
     }
 }

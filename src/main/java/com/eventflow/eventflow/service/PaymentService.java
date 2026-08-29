@@ -5,6 +5,8 @@ import com.eventflow.eventflow.dto.request.VerifyPaymentRequest;
 import com.eventflow.eventflow.dto.response.PaymentResponse;
 import com.eventflow.eventflow.entity.Booking;
 import com.eventflow.eventflow.entity.BookingSeat;
+import com.eventflow.eventflow.kafka.KafkaEventProducer;
+import com.eventflow.eventflow.kafka.event.BookingConfirmedEvent;
 import com.eventflow.eventflow.entity.BookingStatus;
 import com.eventflow.eventflow.entity.Payment;
 import com.eventflow.eventflow.entity.PaymentStatus;
@@ -38,6 +40,7 @@ public class PaymentService {
     private final BookingSeatRepository bookingSeatRepository;
     private final RazorpayClient razorpayClient;
     private final SeatLockService seatLockService;
+    private final KafkaEventProducer kafkaEventProducer;
 
     @Value("${razorpay.key-id}")
     private String razorpayKeyId;
@@ -50,13 +53,14 @@ public class PaymentService {
             BookingRepository bookingRepository,
             BookingSeatRepository bookingSeatRepository,
             RazorpayClient razorpayClient,
-            SeatLockService seatLockService
+            SeatLockService seatLockService, KafkaEventProducer kafkaEventProducer
     ) {
         this.paymentRepository = paymentRepository;
         this.bookingRepository = bookingRepository;
         this.bookingSeatRepository = bookingSeatRepository;
         this.razorpayClient = razorpayClient;
         this.seatLockService = seatLockService;
+        this.kafkaEventProducer = kafkaEventProducer;
     }
 
     public PaymentResponse createPayment(
@@ -380,6 +384,23 @@ public class PaymentService {
                 paymentRepository.save(payment);
 
         bookingRepository.save(booking);
+
+        List<String> seatLabels = bookingSeatRepository.findByBookingId(booking.getId())
+                .stream()
+                .map(bs -> String.valueOf(bs.getSeat().getRowLabel()) + bs.getSeat().getSeatNumber())
+                .toList();
+
+        BookingConfirmedEvent event = new BookingConfirmedEvent(
+                booking.getId(),
+                booking.getUser().getId(),
+                booking.getUser().getEmail(),
+                booking.getEvent().getTitle(),
+                seatLabels,
+                booking.getTotalAmount(),
+                Instant.now()
+        );
+
+        kafkaEventProducer.publishBookingConfirmed(event);
 
         /*
          * Release Redis locks only after the database
