@@ -112,4 +112,4 @@ Detailed step-by-step instructions for environment configuration and startup are
 
 ## 📚 API Documentation
 
-Currently, API contracts are strictly defined and documented within the Spring Boot `Controller` and `DTO` layers. Inspect the classes located in `Backend/src/main/java/com/eventflow/eventflow/controller/` for detailed request and response payloads.
+Currently, API contracts are strictly defined and documented within the Spring Boot `Controller` and `DTO` layers. A high-level overview of the final endpoints is available in **[27-api-inventory.md](docs/27-api-inventory.md)**. Inspect the classes located in `Backend/src/main/java/com/eventflow/eventflow/controller/` for detailed request and response payloads.
